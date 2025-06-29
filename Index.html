@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Simple Pong</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --bg-color: black;
+      --fg-color: white;
+    }
+    body.light {
+      --bg-color: white;
+      --fg-color: black;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg-color);
+      overflow: hidden;
+      font-family: sans-serif;
+    }
+
+    canvas {
+      display: block;
+      margin: auto;
+      background: var(--bg-color);
+    }
+
+    #toggleMode {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: var(--fg-color);
+      color: var(--bg-color);
+      border: none;
+      padding: 6px 10px;
+      font-size: 14px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <button id="toggleMode">Toggle Dark/Light</button>
+  <canvas id="pong" width="480" height="320"></canvas>
+  <script>
+    const canvas = document.getElementById("pong");
+    const ctx = canvas.getContext("2d");
+    const paddleWidth = 10, paddleHeight = 80;
+
+    let playerY = canvas.height / 2 - paddleHeight / 2;
+    let aiY = canvas.height / 2 - paddleHeight / 2;
+
+    let ball = {
+      x: canvas.width / 2,
+      y: canvas.height / 2,
+      r: 7,
+      vx: 4,
+      vy: 4
+    };
+
+    let playerScore = 0;
+    let aiScore = 0;
+
+    function drawRect(x, y, w, h, color) {
+      ctx.fillStyle = color;
+      ctx.fillRect(x, y, w, h);
+    }
+
+    function drawCircle(x, y, r, color) {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawText(text, x, y, color) {
+      ctx.fillStyle = color;
+      ctx.font = "24px Arial";
+      ctx.fillText(text, x, y);
+    }
+
+    function draw() {
+      const bg = getComputedStyle(document.body).getPropertyValue("--bg-color").trim();
+      const fg = getComputedStyle(document.body).getPropertyValue("--fg-color").trim();
+
+      drawRect(0, 0, canvas.width, canvas.height, bg);
+      drawRect(0, playerY, paddleWidth, paddleHeight, fg);
+      drawRect(canvas.width - paddleWidth, aiY, paddleWidth, paddleHeight, fg);
+      drawCircle(ball.x, ball.y, ball.r, fg);
+      drawText(`${playerScore}`, canvas.width / 4, 30, fg);
+      drawText(`${aiScore}`, canvas.width * 3 / 4, 30, fg);
+    }
+
+    function update() {
+      ball.x += ball.vx;
+      ball.y += ball.vy;
+
+      // Bounce off top/bottom
+      if (ball.y - ball.r < 0 || ball.y + ball.r > canvas.height)
+        ball.vy *= -1;
+
+      // Player paddle
+      if (
+        ball.x - ball.r < paddleWidth &&
+        ball.y > playerY &&
+        ball.y < playerY + paddleHeight
+      ) {
+        ball.vx *= -1;
+        ball.x = paddleWidth + ball.r;
+      }
+
+      // AI paddle
+      if (
+        ball.x + ball.r > canvas.width - paddleWidth &&
+        ball.y > aiY &&
+        ball.y < aiY + paddleHeight
+      ) {
+        ball.vx *= -1;
+        ball.x = canvas.width - paddleWidth - ball.r;
+      }
+
+      // Score
+      if (ball.x < 0) {
+        aiScore++;
+        resetBall();
+      } else if (ball.x > canvas.width) {
+        playerScore++;
+        resetBall();
+      }
+
+      // Basic AI
+      aiY += ((ball.y - (aiY + paddleHeight / 2)) * 0.09);
+    }
+
+    function resetBall() {
+      ball.x = canvas.width / 2;
+      ball.y = canvas.height / 2;
+      ball.vx = -ball.vx;
+      ball.vy = 4 * (Math.random() > 0.5 ? 1 : -1);
+    }
+
+    function loop() {
+      update();
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    canvas.addEventListener("touchmove", (e) => {
+      const touchY = e.touches[0].clientY - canvas.getBoundingClientRect().top;
+      playerY = touchY - paddleHeight / 2;
+      playerY = Math.max(0, Math.min(canvas.height - paddleHeight, playerY));
+    });
+
+    // Dark/Light Mode Toggle
+    const toggleBtn = document.getElementById("toggleMode");
+    toggleBtn.addEventListener("click", () => {
+      document.body.classList.toggle("light");
+    });
+
+    loop();
+  </script>
+</body>
+</html>
